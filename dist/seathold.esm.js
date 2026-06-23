@@ -61,7 +61,7 @@ class u {
         (d = (c = this.config).onViewChanged) == null || d.call(c, e.zoom, e.position);
         break;
       case "seathold:hold_created":
-        (g = (l = this.config).onHoldCreated) == null || g.call(l, e.holdId, e.expiresAt, e.seatIds, e.ticketTypes);
+        (g = (l = this.config).onHoldCreated) == null || g.call(l, e.holdId, e.holdToken, e.expiresAt, e.seatIds, e.ticketTypes);
         break;
       case "seathold:hold_released":
         (m = (f = this.config).onHoldReleased) == null || m.call(f);

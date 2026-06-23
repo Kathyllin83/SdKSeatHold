@@ -108,7 +108,7 @@ export class SeatingChart {
         break;
 
       case 'seathold:hold_created':
-        this.config.onHoldCreated?.(data.holdId, data.expiresAt, data.seatIds, data.ticketTypes);
+        this.config.onHoldCreated?.(data.holdId, data.holdToken, data.expiresAt, data.seatIds, data.ticketTypes);
         break;
 
       case 'seathold:hold_released':

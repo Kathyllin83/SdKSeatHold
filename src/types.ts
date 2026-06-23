@@ -27,7 +27,7 @@ export type OutgoingMessage =
   | { type: 'seathold:object_clicked'; objectId: number | string; objectType: string }
   | { type: 'seathold:category_changed'; categoryId: string | number | null }
   | { type: 'seathold:view_changed'; zoom: number; position: { x: number; y: number } }
-  | { type: 'seathold:hold_created'; holdId: number | string; expiresAt: number | null; seatIds: Array<string | number>; ticketTypes: Record<string, string | null> }
+  | { type: 'seathold:hold_created'; holdId: number | string; holdToken: string | null; expiresAt: number | null; seatIds: Array<string | number>; ticketTypes: Record<string, string | null> }
   | { type: 'seathold:hold_released' }
   | { type: 'seathold:state'; eventId: string; selectedSeatIds: Array<string | number>; holdId: number | string | null; holdToken: string | null; expiresAt: number | null }
   | { type: 'seathold:error'; action: string; message: string };
@@ -56,7 +56,7 @@ export type SeatingChartConfig = {
   onObjectClicked?: (objectId: number | string, objectType: string) => void;
   onCategoryChanged?: (categoryId: string | number | null) => void;
   onViewChanged?: (zoom: number, position: { x: number; y: number }) => void;
-  onHoldCreated?: (holdId: number | string, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>) => void;
+  onHoldCreated?: (holdId: number | string, holdToken: string | null, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>) => void;
   onHoldReleased?: () => void;
   onError?: (action: string, message: string) => void;
 };

@@ -51,6 +51,7 @@ export type OutgoingMessage = {
 } | {
     type: 'seathold:hold_created';
     holdId: number | string;
+    holdToken: string | null;
     expiresAt: number | null;
     seatIds: Array<string | number>;
     ticketTypes: Record<string, string | null>;
@@ -93,7 +94,7 @@ export type SeatingChartConfig = {
         x: number;
         y: number;
     }) => void;
-    onHoldCreated?: (holdId: number | string, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>) => void;
+    onHoldCreated?: (holdId: number | string, holdToken: string | null, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>) => void;
     onHoldReleased?: () => void;
     onError?: (action: string, message: string) => void;
 };
