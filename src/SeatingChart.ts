@@ -74,6 +74,17 @@ export class SeatingChart {
     this.send({ type: 'seathold:set_pricing', pricing });
   }
 
+  private validateAndSetPricing(pricing: PricingRule[], objectKeys?: string[]): void {
+    if (objectKeys && objectKeys.length > 0) {
+      for (const rule of pricing) {
+        if (!objectKeys.includes(rule.category)) {
+          console.warn(`[SeatHold] Pricing category "${rule.category}" has no matching object_key in the map — it will have no effect.`);
+        }
+      }
+    }
+    this.setPricing(pricing);
+  }
+
   private send(message: IncomingMessage): void {
     if (!this.iframe?.contentWindow) {
       console.warn('[SeatHold] iframe not ready yet.');
@@ -85,22 +96,29 @@ export class SeatingChart {
   private handleMessage(data: OutgoingMessage): void {
     switch (data.type) {
       case 'seathold:ready':
+        if (data.objectKeys) {
+          for (const key of data.objectKeys) {
+            if (!key) {
+              console.warn('[SeatHold] A bookable object has no object_key — it will not be commercially addressable.');
+            }
+          }
+        }
         if (this.config.pricing && this.config.pricing.length > 0) {
-          this.setPricing(this.config.pricing);
+          this.validateAndSetPricing(this.config.pricing, data.objectKeys);
         }
         this.config.onReady?.(data.eventId);
         break;
 
       case 'seathold:selection_changed':
-        this.config.onSelectionChanged?.(data.seatIds, data.ticketTypes);
+        this.config.onSelectionChanged?.(data.seatIds, data.ticketTypes, data.objectKeys, data.items);
         break;
 
       case 'seathold:object_clicked':
-        this.config.onObjectClicked?.(data.objectId, data.objectType);
+        this.config.onObjectClicked?.(data.objectId, data.objectType, data.objectKey);
         break;
 
       case 'seathold:category_changed':
-        this.config.onCategoryChanged?.(data.categoryId);
+        this.config.onCategoryChanged?.(data.categoryKey);
         break;
 
       case 'seathold:view_changed':
@@ -108,7 +126,7 @@ export class SeatingChart {
         break;
 
       case 'seathold:hold_created':
-        this.config.onHoldCreated?.(data.holdId, data.holdToken, data.expiresAt, data.seatIds, data.ticketTypes);
+        this.config.onHoldCreated?.(data.holdId, data.holdToken, data.expiresAt, data.seatIds, data.ticketTypes, data.objectKeys, data.items);
         break;
 
       case 'seathold:hold_released':

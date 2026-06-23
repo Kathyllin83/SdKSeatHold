@@ -7,8 +7,17 @@ export type TicketType = {
 };
 
 export type PricingRule = {
+  /** object_key as defined in MapBuilder — never a UUID */
   category: string;
   ticketTypes: TicketType[];
+};
+
+export type SelectedItem = {
+  /** Stable commercial key (object_key from MapBuilder) */
+  objectKey: string;
+  /** Legacy UUID — use objectKey as primary reference */
+  objectId: string | number;
+  ticketType: string | null;
 };
 
 // Messages the SDK sends INTO the iframe
@@ -22,12 +31,12 @@ export type IncomingMessage =
 
 // Messages the SDK receives FROM the iframe
 export type OutgoingMessage =
-  | { type: 'seathold:ready'; eventId: string }
-  | { type: 'seathold:selection_changed'; seatIds: Array<string | number>; ticketTypes: Record<string, string | null> }
-  | { type: 'seathold:object_clicked'; objectId: number | string; objectType: string }
-  | { type: 'seathold:category_changed'; categoryId: string | number | null }
+  | { type: 'seathold:ready'; eventId: string; objectKeys?: string[] }
+  | { type: 'seathold:selection_changed'; seatIds: Array<string | number>; objectKeys: string[]; items: SelectedItem[]; ticketTypes: Record<string, string | null> }
+  | { type: 'seathold:object_clicked'; objectId: number | string; objectKey?: string; objectType: string }
+  | { type: 'seathold:category_changed'; categoryKey: string | null }
   | { type: 'seathold:view_changed'; zoom: number; position: { x: number; y: number } }
-  | { type: 'seathold:hold_created'; holdId: number | string; holdToken: string | null; expiresAt: number | null; seatIds: Array<string | number>; ticketTypes: Record<string, string | null> }
+  | { type: 'seathold:hold_created'; holdId: number | string; holdToken: string | null; expiresAt: number | null; seatIds: Array<string | number>; objectKeys: string[]; items: SelectedItem[]; ticketTypes: Record<string, string | null> }
   | { type: 'seathold:hold_released' }
   | { type: 'seathold:state'; eventId: string; selectedSeatIds: Array<string | number>; holdId: number | string | null; holdToken: string | null; expiresAt: number | null }
   | { type: 'seathold:error'; action: string; message: string };
@@ -52,11 +61,11 @@ export type SeatingChartConfig = {
 
   // — Callbacks —
   onReady?: (eventId: string) => void;
-  onSelectionChanged?: (seatIds: Array<string | number>, ticketTypes: Record<string, string | null>) => void;
-  onObjectClicked?: (objectId: number | string, objectType: string) => void;
-  onCategoryChanged?: (categoryId: string | number | null) => void;
+  onSelectionChanged?: (seatIds: Array<string | number>, ticketTypes: Record<string, string | null>, objectKeys: string[], items: SelectedItem[]) => void;
+  onObjectClicked?: (objectId: number | string, objectType: string, objectKey?: string) => void;
+  onCategoryChanged?: (categoryKey: string | null) => void;
   onViewChanged?: (zoom: number, position: { x: number; y: number }) => void;
-  onHoldCreated?: (holdId: number | string, holdToken: string | null, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>) => void;
+  onHoldCreated?: (holdId: number | string, holdToken: string | null, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>, objectKeys: string[], items: SelectedItem[]) => void;
   onHoldReleased?: () => void;
   onError?: (action: string, message: string) => void;
 };
