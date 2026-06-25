@@ -54,8 +54,8 @@ export class SeatingChart {
     this.send({ type: 'seathold:set_selected_seats', seatIds });
   }
 
-  holdCreated(holdId: number | string, holdToken: string | null, expiresAt: number | null): void {
-    this.send({ type: 'seathold:hold_created', holdId, holdToken, expiresAt });
+  holdCreated(holdId: number | string, sessionToken: string | null, expiresAt: number | null): void {
+    this.send({ type: 'seathold:hold_created', holdId, sessionToken, expiresAt });
   }
 
   releaseHold(): void {

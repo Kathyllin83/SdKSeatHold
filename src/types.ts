@@ -23,7 +23,7 @@ export type SelectedItem = {
 // Messages the SDK sends INTO the iframe
 export type IncomingMessage =
   | { type: 'seathold:set_selected_seats'; seatIds: Array<string | number> }
-  | { type: 'seathold:hold_created'; holdId: number | string; holdToken: string | null; expiresAt: number | null }
+  | { type: 'seathold:hold_created'; holdId: number | string; sessionToken: string | null; expiresAt: number | null }
   | { type: 'seathold:release_hold' }
   | { type: 'seathold:update_session'; sessionToken: string; expiresAt?: number | null }
   | { type: 'seathold:request_state' }
