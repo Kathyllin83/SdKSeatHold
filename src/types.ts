@@ -32,11 +32,11 @@ export type IncomingMessage =
 // Messages the SDK receives FROM the iframe
 export type OutgoingMessage =
   | { type: 'seathold:ready'; eventId: string; objectKeys?: string[] }
-  | { type: 'seathold:selection_changed'; seatIds: Array<string | number>; objectKeys: string[]; items: SelectedItem[]; ticketTypes: Record<string, string | null> }
+  | { type: 'seathold:selection_changed'; seatIds: Array<string | number>; objectKeys?: string[]; items?: SelectedItem[]; ticketTypes: Record<string, string | null> }
   | { type: 'seathold:object_clicked'; objectId: number | string; objectKey?: string; objectType: string }
   | { type: 'seathold:category_changed'; categoryKey: string | null }
   | { type: 'seathold:view_changed'; zoom: number; position: { x: number; y: number } }
-  | { type: 'seathold:hold_created'; holdId: number | string; holdToken: string | null; expiresAt: number | null; seatIds: Array<string | number>; objectKeys: string[]; items: SelectedItem[]; ticketTypes: Record<string, string | null> }
+  | { type: 'seathold:hold_created'; holdId: number | string; holdToken: string | null; expiresAt: number | null; seatIds: Array<string | number>; objectKeys?: string[]; items?: SelectedItem[]; ticketTypes: Record<string, string | null> }
   | { type: 'seathold:hold_released' }
   | { type: 'seathold:state'; eventId: string; selectedSeatIds: Array<string | number>; holdId: number | string | null; holdToken: string | null; expiresAt: number | null }
   | { type: 'seathold:error'; action: string; message: string };

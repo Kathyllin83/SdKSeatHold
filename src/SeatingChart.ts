@@ -110,7 +110,7 @@ export class SeatingChart {
         break;
 
       case 'seathold:selection_changed':
-        this.config.onSelectionChanged?.(data.seatIds, data.ticketTypes, data.objectKeys, data.items);
+        this.config.onSelectionChanged?.(data.seatIds, data.ticketTypes, data.objectKeys ?? [], data.items ?? []);
         break;
 
       case 'seathold:object_clicked':
@@ -126,7 +126,7 @@ export class SeatingChart {
         break;
 
       case 'seathold:hold_created':
-        this.config.onHoldCreated?.(data.holdId, data.holdToken, data.expiresAt, data.seatIds, data.ticketTypes, data.objectKeys, data.items);
+        this.config.onHoldCreated?.(data.holdId, data.holdToken, data.expiresAt, data.seatIds, data.ticketTypes, data.objectKeys ?? [], data.items ?? []);
         break;
 
       case 'seathold:hold_released':
