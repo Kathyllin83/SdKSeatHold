@@ -1,4 +1,4 @@
-class u {
+class H {
   constructor(e) {
     this.iframe = null, this.messageHandler = null, this.iframeOrigin = "", this.config = e;
   }
@@ -19,8 +19,8 @@ class u {
   setSelectedSeats(e) {
     this.send({ type: "seathold:set_selected_seats", seatIds: e });
   }
-  createHold(e) {
-    this.send({ type: "seathold:create_hold", seatIds: e });
+  holdCreated(e, s) {
+    this.send({ type: "seathold:hold_created", sessionToken: e, expiresAt: s });
   }
   releaseHold() {
     this.send({ type: "seathold:release_hold" });
@@ -34,6 +34,12 @@ class u {
   setPricing(e) {
     this.send({ type: "seathold:set_pricing", pricing: e });
   }
+  validateAndSetPricing(e, s) {
+    if (s && s.length > 0)
+      for (const i of e)
+        s.includes(i.category) || console.warn(`[SeatHold] Pricing category "${i.category}" has no matching object_key in the map — it will have no effect.`);
+    this.setPricing(e);
+  }
   send(e) {
     var s;
     if (!((s = this.iframe) != null && s.contentWindow)) {
@@ -43,31 +49,48 @@ class u {
     this.iframe.contentWindow.postMessage(e, this.iframeOrigin);
   }
   handleMessage(e) {
-    var s, i, t, n, o, r, h, a, c, d, l, g, f, m, p, y;
+    var s, i, t, o, n, r, h, c, l, d, a, g, f, m, p, y, b, k, u, w;
     switch (e.type) {
       case "seathold:ready":
-        this.config.pricing && this.config.pricing.length > 0 && this.setPricing(this.config.pricing), (i = (s = this.config).onReady) == null || i.call(s, e.eventId);
+        if (e.objectKeys)
+          for (const S of e.objectKeys)
+            S || console.warn("[SeatHold] A bookable object has no object_key — it will not be commercially addressable.");
+        this.config.pricing && this.config.pricing.length > 0 && this.validateAndSetPricing(this.config.pricing, e.objectKeys), (i = (s = this.config).onReady) == null || i.call(s, e.eventId);
         break;
       case "seathold:selection_changed":
-        (n = (t = this.config).onSelectionChanged) == null || n.call(t, e.seatIds, e.ticketTypes);
+        (o = (t = this.config).onSelectionChanged) == null || o.call(t, e.seatIds, e.ticketTypes, e.objectKeys ?? [], e.items ?? []);
         break;
       case "seathold:object_clicked":
-        (r = (o = this.config).onObjectClicked) == null || r.call(o, e.objectId, e.objectType);
+        (r = (n = this.config).onObjectClicked) == null || r.call(n, e.objectId, e.objectType, e.objectKey);
         break;
       case "seathold:category_changed":
-        (a = (h = this.config).onCategoryChanged) == null || a.call(h, e.categoryId);
+        (c = (h = this.config).onCategoryChanged) == null || c.call(h, e.categoryKey);
         break;
       case "seathold:view_changed":
-        (d = (c = this.config).onViewChanged) == null || d.call(c, e.zoom, e.position);
+        (d = (l = this.config).onViewChanged) == null || d.call(l, e.zoom, e.position);
         break;
       case "seathold:hold_created":
-        (g = (l = this.config).onHoldCreated) == null || g.call(l, e.holdId, e.holdToken, e.expiresAt, e.seatIds, e.ticketTypes);
+        (g = (a = this.config).onHoldCreated) == null || g.call(a, e.holdId, e.holdToken, e.expiresAt, e.seatIds, e.ticketTypes, e.objectKeys ?? [], e.items ?? []);
         break;
       case "seathold:hold_released":
         (m = (f = this.config).onHoldReleased) == null || m.call(f);
         break;
+      case "seathold:state":
+        (y = (p = this.config).onState) == null || y.call(p, {
+          eventId: e.eventId,
+          selectedSeatIds: e.selectedSeatIds,
+          holdId: e.holdId,
+          holdToken: e.holdToken,
+          sessionToken: e.sessionToken ?? null,
+          sessionExpiresAt: e.sessionExpiresAt ?? e.expiresAt,
+          expiresAt: e.expiresAt
+        });
+        break;
+      case "seathold:session_updated":
+        (k = (b = this.config).onSessionUpdated) == null || k.call(b, e.sessionToken, e.expiresAt);
+        break;
       case "seathold:error":
-        (y = (p = this.config).onError) == null || y.call(p, e.action, e.message);
+        (w = (u = this.config).onError) == null || w.call(u, e.action, e.message);
         break;
     }
   }
@@ -83,5 +106,5 @@ class u {
   }
 }
 export {
-  u as SeatingChart
+  H as SeatingChart
 };

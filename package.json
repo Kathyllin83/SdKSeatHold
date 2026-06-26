@@ -1,6 +1,6 @@
 {
   "name": "@seathold/sdk",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "SeatHold embed SDK — renders an interactive seat map inside an iframe and communicates via postMessage",
   "main": "dist/seathold.umd.js",
   "module": "dist/seathold.esm.js",

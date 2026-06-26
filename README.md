@@ -34,7 +34,10 @@ Or via CDN:
       console.log('Selected seats:', seatIds);
       console.log('Ticket types chosen:', ticketTypes);
     },
-    onHoldCreated: (holdId, expiresAt, seatIds, ticketTypes) => {
+    onSessionUpdated: (sessionToken, expiresAt) => {
+      console.log('Embed session token:', sessionToken, 'expires at:', expiresAt);
+    },
+    onHoldCreated: (holdId, holdToken, expiresAt, seatIds, ticketTypes) => {
       console.log('Hold created:', holdId);
     },
   }).render();
@@ -73,11 +76,19 @@ const chart = new SeatingChart({
     console.log(seatIds, ticketTypes);
   },
 
-  onHoldCreated: (holdId, expiresAt, seatIds, ticketTypes) => {
+  onSessionUpdated: (sessionToken, expiresAt) => {
+    // Persist the new embed session token created inside the iframe
+    fetch('/api/embed-session', {
+      method: 'POST',
+      body: JSON.stringify({ sessionToken, expiresAt }),
+    });
+  },
+
+  onHoldCreated: (holdId, holdToken, expiresAt, seatIds, ticketTypes) => {
     // Send holdId + ticketTypes to your backend to finalize the order
     fetch('/api/orders', {
       method: 'POST',
-      body: JSON.stringify({ holdId, ticketTypes }),
+      body: JSON.stringify({ holdId, holdToken, ticketTypes }),
     });
   },
 }).render();
@@ -102,8 +113,10 @@ const chart = new SeatingChart({
 | `onObjectClicked` | `(objectId, objectType) => void` | | Fired when any object is clicked |
 | `onCategoryChanged` | `(categoryId) => void` | | Fired when active category changes |
 | `onViewChanged` | `(zoom, position) => void` | | Fired on pan/zoom |
-| `onHoldCreated` | `(holdId, expiresAt, seatIds, ticketTypes) => void` | | Fired after a hold is created |
+| `onHoldCreated` | `(holdId, holdToken, expiresAt, seatIds, ticketTypes) => void` | | Fired after a hold is created |
 | `onHoldReleased` | `() => void` | | Fired after a hold is released |
+| `onState` | `(state) => void` | | Fired when the iframe responds to `requestState()` |
+| `onSessionUpdated` | `(sessionToken, expiresAt) => void` | | Fired when the iframe creates or refreshes the embed session token |
 | `onError` | `(action, message) => void` | | Fired on errors |
 
 ### Instance methods
@@ -118,6 +131,29 @@ chart.updateSession(token, expiresAt) // Refresh the session token
 chart.requestState()                  // Ask for current state snapshot
 chart.setPricing(rules)               // Update pricing rules at runtime
 ```
+
+## Session token capture
+
+If the embed creates a new authenticated session from inside the iframe, listen to `onSessionUpdated` to capture the new `session_token` in the host app:
+
+```js
+const chart = new SeatingChart({
+  // ...
+  onSessionUpdated: (sessionToken, expiresAt) => {
+    console.log('New session_token from iframe:', sessionToken, expiresAt);
+  },
+  onState: (state) => {
+    console.log('Current embed state:', state);
+  },
+}).render();
+
+chart.requestState();
+```
+
+For this to work, the embed must post either:
+
+- `seathold:session_updated` with `{ sessionToken, expiresAt }`
+- `seathold:state` with `{ sessionToken, sessionExpiresAt, ... }`
 
 ## TicketType
 

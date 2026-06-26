@@ -54,8 +54,8 @@ export class SeatingChart {
     this.send({ type: 'seathold:set_selected_seats', seatIds });
   }
 
-  holdCreated(holdId: number | string, sessionToken: string | null, expiresAt: number | null): void {
-    this.send({ type: 'seathold:hold_created', holdId, sessionToken, expiresAt });
+  holdCreated(sessionToken: string, expiresAt: number | null): void {
+    this.send({ type: 'seathold:hold_created', sessionToken, expiresAt });
   }
 
   releaseHold(): void {
@@ -131,6 +131,22 @@ export class SeatingChart {
 
       case 'seathold:hold_released':
         this.config.onHoldReleased?.();
+        break;
+
+      case 'seathold:state':
+        this.config.onState?.({
+          eventId: data.eventId,
+          selectedSeatIds: data.selectedSeatIds,
+          holdId: data.holdId,
+          holdToken: data.holdToken,
+          sessionToken: data.sessionToken ?? null,
+          sessionExpiresAt: data.sessionExpiresAt ?? data.expiresAt,
+          expiresAt: data.expiresAt,
+        });
+        break;
+
+      case 'seathold:session_updated':
+        this.config.onSessionUpdated?.(data.sessionToken, data.expiresAt);
         break;
 
       case 'seathold:error':

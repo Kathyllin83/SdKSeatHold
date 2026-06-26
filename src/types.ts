@@ -20,10 +20,20 @@ export type SelectedItem = {
   ticketType: string | null;
 };
 
+export type SessionState = {
+  eventId: string;
+  selectedSeatIds: Array<string | number>;
+  holdId: number | string | null;
+  holdToken: string | null;
+  sessionToken: string | null;
+  sessionExpiresAt: number | null;
+  expiresAt: number | null;
+};
+
 // Messages the SDK sends INTO the iframe
 export type IncomingMessage =
   | { type: 'seathold:set_selected_seats'; seatIds: Array<string | number> }
-  | { type: 'seathold:hold_created'; holdId: number | string; sessionToken: string | null; expiresAt: number | null }
+  | { type: 'seathold:hold_created'; sessionToken: string; expiresAt: number | null }
   | { type: 'seathold:release_hold' }
   | { type: 'seathold:update_session'; sessionToken: string; expiresAt?: number | null }
   | { type: 'seathold:request_state' }
@@ -38,7 +48,8 @@ export type OutgoingMessage =
   | { type: 'seathold:view_changed'; zoom: number; position: { x: number; y: number } }
   | { type: 'seathold:hold_created'; holdId: number | string; holdToken: string | null; expiresAt: number | null; seatIds: Array<string | number>; objectKeys?: string[]; items?: SelectedItem[]; ticketTypes: Record<string, string | null> }
   | { type: 'seathold:hold_released' }
-  | { type: 'seathold:state'; eventId: string; selectedSeatIds: Array<string | number>; holdId: number | string | null; holdToken: string | null; expiresAt: number | null }
+  | { type: 'seathold:state'; eventId: string; selectedSeatIds: Array<string | number>; holdId: number | string | null; holdToken: string | null; sessionToken?: string | null; sessionExpiresAt?: number | null; expiresAt: number | null }
+  | { type: 'seathold:session_updated'; sessionToken: string | null; expiresAt: number | null }
   | { type: 'seathold:error'; action: string; message: string };
 
 export type SeatingChartConfig = {
@@ -67,5 +78,7 @@ export type SeatingChartConfig = {
   onViewChanged?: (zoom: number, position: { x: number; y: number }) => void;
   onHoldCreated?: (holdId: number | string, holdToken: string | null, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>, objectKeys: string[], items: SelectedItem[]) => void;
   onHoldReleased?: () => void;
+  onState?: (state: SessionState) => void;
+  onSessionUpdated?: (sessionToken: string | null, expiresAt: number | null) => void;
   onError?: (action: string, message: string) => void;
 };
