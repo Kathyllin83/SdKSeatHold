@@ -1,4 +1,4 @@
-import type { IncomingMessage, OutgoingMessage, PricingRule, SeatingChartConfig } from './types';
+import type { IncomingMessage, OutgoingMessage, PricingRule, SeatingChartConfig, SectionSummary } from './types';
 
 export class SeatingChart {
   private readonly config: SeatingChartConfig;
@@ -74,11 +74,12 @@ export class SeatingChart {
     this.send({ type: 'seathold:set_pricing', pricing });
   }
 
-  private validateAndSetPricing(pricing: PricingRule[], objectKeys?: string[]): void {
-    if (objectKeys && objectKeys.length > 0) {
+  private validateAndSetPricing(pricing: PricingRule[], sections?: SectionSummary[], fallbackKeys?: string[]): void {
+    const validKeys = sections?.map((section) => section.key).filter(Boolean) ?? fallbackKeys ?? [];
+    if (validKeys.length > 0) {
       for (const rule of pricing) {
-        if (!objectKeys.includes(rule.category)) {
-          console.warn(`[SeatHold] Pricing category "${rule.category}" has no matching object_key in the map — it will have no effect.`);
+        if (!validKeys.includes(rule.category)) {
+          console.warn(`[SeatHold] Pricing category "${rule.category}" has no matching section key in the embed payload — it will have no effect.`);
         }
       }
     }
@@ -96,25 +97,26 @@ export class SeatingChart {
   private handleMessage(data: OutgoingMessage): void {
     switch (data.type) {
       case 'seathold:ready':
-        if (data.objectKeys) {
-          for (const key of data.objectKeys) {
+        const readyKeys = data.sections?.map((section) => section.key) ?? data.objectKeys;
+        if (readyKeys) {
+          for (const key of readyKeys) {
             if (!key) {
-              console.warn('[SeatHold] A bookable object has no object_key — it will not be commercially addressable.');
+              console.warn('[SeatHold] A bookable section has no key — it will not be commercially addressable.');
             }
           }
         }
         if (this.config.pricing && this.config.pricing.length > 0) {
-          this.validateAndSetPricing(this.config.pricing, data.objectKeys);
+          this.validateAndSetPricing(this.config.pricing, data.sections, data.objectKeys);
         }
-        this.config.onReady?.(data.eventId);
+        this.config.onReady?.(data.eventId, data.objectKeys);
         break;
 
       case 'seathold:selection_changed':
-        this.config.onSelectionChanged?.(data.seatIds, data.ticketTypes, data.objectKeys ?? [], data.items ?? []);
+        this.config.onSelectionChanged?.(data.seatIds, data.ticketTypes, data.objectKeys, data.items, data.pricingSelection);
         break;
 
       case 'seathold:object_clicked':
-        this.config.onObjectClicked?.(data.objectId, data.objectType, data.objectKey);
+        this.config.onObjectClicked?.(data.objectId, data.objectType, data.objectKey, data.categoryKey);
         break;
 
       case 'seathold:category_changed':
@@ -145,6 +147,10 @@ export class SeatingChart {
         });
         break;
 
+      case 'seathold:session_created':
+        this.config.onSessionCreated?.(data.sessionToken, data.expiresAt);
+        break;
+
       case 'seathold:session_updated':
         this.config.onSessionUpdated?.(data.sessionToken, data.expiresAt);
         break;
@@ -160,6 +166,7 @@ export class SeatingChart {
     const params = new URLSearchParams({
       workspace_key: this.config.workspaceKey,
       ...(this.config.sessionToken ? { session_token: this.config.sessionToken } : {}),
+      ...(this.config.mode ? { mode: this.config.mode } : {}),
     });
     return `${base}/embed/${this.config.event}?${params.toString()}`;
   }

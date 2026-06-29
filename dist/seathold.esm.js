@@ -1,4 +1,4 @@
-class H {
+class x {
   constructor(e) {
     this.iframe = null, this.messageHandler = null, this.iframeOrigin = "", this.config = e;
   }
@@ -9,8 +9,8 @@ class H {
     const s = this.buildEmbedUrl();
     this.iframeOrigin = new URL(this.config.baseUrl).origin;
     const i = document.createElement("iframe");
-    return i.src = s, i.style.width = this.resolveSize(this.config.width, "100%"), i.style.height = this.resolveSize(this.config.height, "600px"), i.style.border = "none", i.allow = "fullscreen", this.iframe = i, e.innerHTML = "", e.appendChild(i), this.messageHandler = (t) => {
-      t.origin === this.iframeOrigin && this.handleMessage(t.data);
+    return i.src = s, i.style.width = this.resolveSize(this.config.width, "100%"), i.style.height = this.resolveSize(this.config.height, "600px"), i.style.border = "none", i.allow = "fullscreen", this.iframe = i, e.innerHTML = "", e.appendChild(i), this.messageHandler = (o) => {
+      o.origin === this.iframeOrigin && this.handleMessage(o.data);
     }, window.addEventListener("message", this.messageHandler), this;
   }
   destroy() {
@@ -34,10 +34,11 @@ class H {
   setPricing(e) {
     this.send({ type: "seathold:set_pricing", pricing: e });
   }
-  validateAndSetPricing(e, s) {
-    if (s && s.length > 0)
-      for (const i of e)
-        s.includes(i.category) || console.warn(`[SeatHold] Pricing category "${i.category}" has no matching object_key in the map — it will have no effect.`);
+  validateAndSetPricing(e, s, i) {
+    const o = (s == null ? void 0 : s.map((t) => t.key).filter(Boolean)) ?? i ?? [];
+    if (o.length > 0)
+      for (const t of e)
+        o.includes(t.category) || console.warn(`[SeatHold] Pricing category "${t.category}" has no matching section key in the embed payload — it will have no effect.`);
     this.setPricing(e);
   }
   send(e) {
@@ -49,34 +50,35 @@ class H {
     this.iframe.contentWindow.postMessage(e, this.iframeOrigin);
   }
   handleMessage(e) {
-    var s, i, t, o, n, r, h, c, l, d, a, g, f, m, p, y, b, k, u, w;
+    var s, i, o, t, r, c, h, l, d, a, g, f, m, y, p, b, k, u, w, S, _, v, H;
     switch (e.type) {
       case "seathold:ready":
-        if (e.objectKeys)
-          for (const S of e.objectKeys)
-            S || console.warn("[SeatHold] A bookable object has no object_key — it will not be commercially addressable.");
-        this.config.pricing && this.config.pricing.length > 0 && this.validateAndSetPricing(this.config.pricing, e.objectKeys), (i = (s = this.config).onReady) == null || i.call(s, e.eventId);
+        const I = ((s = e.sections) == null ? void 0 : s.map((n) => n.key)) ?? e.objectKeys;
+        if (I)
+          for (const n of I)
+            n || console.warn("[SeatHold] A bookable section has no key — it will not be commercially addressable.");
+        this.config.pricing && this.config.pricing.length > 0 && this.validateAndSetPricing(this.config.pricing, e.sections, e.objectKeys), (o = (i = this.config).onReady) == null || o.call(i, e.eventId, e.objectKeys);
         break;
       case "seathold:selection_changed":
-        (o = (t = this.config).onSelectionChanged) == null || o.call(t, e.seatIds, e.ticketTypes, e.objectKeys ?? [], e.items ?? []);
+        (r = (t = this.config).onSelectionChanged) == null || r.call(t, e.seatIds, e.ticketTypes, e.objectKeys, e.items, e.pricingSelection);
         break;
       case "seathold:object_clicked":
-        (r = (n = this.config).onObjectClicked) == null || r.call(n, e.objectId, e.objectType, e.objectKey);
+        (h = (c = this.config).onObjectClicked) == null || h.call(c, e.objectId, e.objectType, e.objectKey, e.categoryKey);
         break;
       case "seathold:category_changed":
-        (c = (h = this.config).onCategoryChanged) == null || c.call(h, e.categoryKey);
+        (d = (l = this.config).onCategoryChanged) == null || d.call(l, e.categoryKey);
         break;
       case "seathold:view_changed":
-        (d = (l = this.config).onViewChanged) == null || d.call(l, e.zoom, e.position);
+        (g = (a = this.config).onViewChanged) == null || g.call(a, e.zoom, e.position);
         break;
       case "seathold:hold_created":
-        (g = (a = this.config).onHoldCreated) == null || g.call(a, e.holdId, e.holdToken, e.expiresAt, e.seatIds, e.ticketTypes, e.objectKeys ?? [], e.items ?? []);
+        (m = (f = this.config).onHoldCreated) == null || m.call(f, e.holdId, e.holdToken, e.expiresAt, e.seatIds, e.ticketTypes, e.objectKeys ?? [], e.items ?? []);
         break;
       case "seathold:hold_released":
-        (m = (f = this.config).onHoldReleased) == null || m.call(f);
+        (p = (y = this.config).onHoldReleased) == null || p.call(y);
         break;
       case "seathold:state":
-        (y = (p = this.config).onState) == null || y.call(p, {
+        (k = (b = this.config).onState) == null || k.call(b, {
           eventId: e.eventId,
           selectedSeatIds: e.selectedSeatIds,
           holdId: e.holdId,
@@ -86,18 +88,22 @@ class H {
           expiresAt: e.expiresAt
         });
         break;
+      case "seathold:session_created":
+        (w = (u = this.config).onSessionCreated) == null || w.call(u, e.sessionToken, e.expiresAt);
+        break;
       case "seathold:session_updated":
-        (k = (b = this.config).onSessionUpdated) == null || k.call(b, e.sessionToken, e.expiresAt);
+        (_ = (S = this.config).onSessionUpdated) == null || _.call(S, e.sessionToken, e.expiresAt);
         break;
       case "seathold:error":
-        (w = (u = this.config).onError) == null || w.call(u, e.action, e.message);
+        (H = (v = this.config).onError) == null || H.call(v, e.action, e.message);
         break;
     }
   }
   buildEmbedUrl() {
     const e = this.config.baseUrl.replace(/\/$/, ""), s = new URLSearchParams({
       workspace_key: this.config.workspaceKey,
-      ...this.config.sessionToken ? { session_token: this.config.sessionToken } : {}
+      ...this.config.sessionToken ? { session_token: this.config.sessionToken } : {},
+      ...this.config.mode ? { mode: this.config.mode } : {}
     });
     return `${e}/embed/${this.config.event}?${s.toString()}`;
   }
@@ -106,5 +112,5 @@ class H {
   }
 }
 export {
-  H as SeatingChart
+  x as SeatingChart
 };

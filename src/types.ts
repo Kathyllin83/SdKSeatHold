@@ -7,9 +7,17 @@ export type TicketType = {
 };
 
 export type PricingRule = {
-  /** object_key as defined in MapBuilder — never a UUID */
+  /** Section key as exposed by the embed payload (`sections[].key`) */
   category: string;
   ticketTypes: TicketType[];
+};
+
+export type SectionSummary = {
+  id: string;
+  label: string;
+  color?: string | null;
+  /** Stable commercial key from the embed payload */
+  key: string;
 };
 
 export type SelectedItem = {
@@ -17,13 +25,19 @@ export type SelectedItem = {
   objectKey: string;
   /** Legacy UUID — use objectKey as primary reference */
   objectId: string | number;
+  /** Stable section key from the inventory/map payload */
+  sectionKey?: string | null;
+  /** Stable category key from the inventory/map payload */
+  categoryKey?: string | null;
   ticketType: string | null;
 };
 
 export type SessionState = {
   eventId: string;
   selectedSeatIds: Array<string | number>;
+  /** Since the session-token refactor, `holdId` mirrors the session token value. */
   holdId: number | string | null;
+  /** Since the session-token refactor, `holdToken` mirrors the session token value. */
   holdToken: string | null;
   sessionToken: string | null;
   sessionExpiresAt: number | null;
@@ -41,14 +55,15 @@ export type IncomingMessage =
 
 // Messages the SDK receives FROM the iframe
 export type OutgoingMessage =
-  | { type: 'seathold:ready'; eventId: string; objectKeys?: string[] }
-  | { type: 'seathold:selection_changed'; seatIds: Array<string | number>; objectKeys?: string[]; items?: SelectedItem[]; ticketTypes: Record<string, string | null> }
-  | { type: 'seathold:object_clicked'; objectId: number | string; objectKey?: string; objectType: string }
+  | { type: 'seathold:ready'; eventId: string; objectKeys?: string[]; sections?: SectionSummary[] }
+  | { type: 'seathold:selection_changed'; seatIds: Array<string | number>; objectKeys: string[]; items: SelectedItem[]; ticketTypes: Record<string, string | null>; pricingSelection: Record<string, string | null> }
+  | { type: 'seathold:object_clicked'; objectId: number | string; objectKey?: string; objectType: string; categoryKey?: string | null }
   | { type: 'seathold:category_changed'; categoryKey: string | null }
   | { type: 'seathold:view_changed'; zoom: number; position: { x: number; y: number } }
   | { type: 'seathold:hold_created'; holdId: number | string; holdToken: string | null; expiresAt: number | null; seatIds: Array<string | number>; objectKeys?: string[]; items?: SelectedItem[]; ticketTypes: Record<string, string | null> }
   | { type: 'seathold:hold_released' }
   | { type: 'seathold:state'; eventId: string; selectedSeatIds: Array<string | number>; holdId: number | string | null; holdToken: string | null; sessionToken?: string | null; sessionExpiresAt?: number | null; expiresAt: number | null }
+  | { type: 'seathold:session_created'; sessionToken: string; expiresAt: string }
   | { type: 'seathold:session_updated'; sessionToken: string | null; expiresAt: number | null }
   | { type: 'seathold:error'; action: string; message: string };
 
@@ -61,6 +76,8 @@ export type SeatingChartConfig = {
   event: string;
   /** Base URL of your SeatHold server (e.g. https://tickets.myapp.com) */
   baseUrl: string;
+  /** Embed mode applied at mount time */
+  mode?: 'manager' | 'simplified';
   /** Optional session token for authenticated holds */
   sessionToken?: string;
   /** Multiprice rules: define ticket types per category key */
@@ -71,14 +88,22 @@ export type SeatingChartConfig = {
   width?: number | string;
 
   // — Callbacks —
-  onReady?: (eventId: string) => void;
-  onSelectionChanged?: (seatIds: Array<string | number>, ticketTypes: Record<string, string | null>, objectKeys: string[], items: SelectedItem[]) => void;
-  onObjectClicked?: (objectId: number | string, objectType: string, objectKey?: string) => void;
+  onReady?: (eventId: string, objectKeys?: string[]) => void;
+  onSelectionChanged?: (
+    seatIds: Array<string | number>,
+    ticketTypes: Record<string, string | null>,
+    objectKeys: string[],
+    items: SelectedItem[],
+    pricingSelection: Record<string, string | null>,
+  ) => void;
+  onObjectClicked?: (objectId: number | string, objectType: string, objectKey?: string, categoryKey?: string | null) => void;
   onCategoryChanged?: (categoryKey: string | null) => void;
   onViewChanged?: (zoom: number, position: { x: number; y: number }) => void;
+  /** Since the session-token refactor, `holdId` and `holdToken` both mirror `sessionToken`. */
   onHoldCreated?: (holdId: number | string, holdToken: string | null, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>, objectKeys: string[], items: SelectedItem[]) => void;
   onHoldReleased?: () => void;
   onState?: (state: SessionState) => void;
+  onSessionCreated?: (sessionToken: string, expiresAt: string) => void;
   onSessionUpdated?: (sessionToken: string | null, expiresAt: number | null) => void;
   onError?: (action: string, message: string) => void;
 };
