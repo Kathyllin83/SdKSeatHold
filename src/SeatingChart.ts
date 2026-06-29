@@ -164,11 +164,12 @@ export class SeatingChart {
   private buildEmbedUrl(): string {
     const base = this.config.baseUrl.replace(/\/$/, '');
     const params = new URLSearchParams({
+      event_id: this.config.event,
       workspace_key: this.config.workspaceKey,
       ...(this.config.sessionToken ? { session_token: this.config.sessionToken } : {}),
       ...(this.config.mode ? { mode: this.config.mode } : {}),
     });
-    return `${base}/embed/${this.config.event}?${params.toString()}`;
+    return `${base}/embed/render?${params.toString()}`;
   }
 
   private resolveSize(value: number | string | undefined, fallback: string): string {

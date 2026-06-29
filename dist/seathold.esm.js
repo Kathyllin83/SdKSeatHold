@@ -101,11 +101,12 @@ class x {
   }
   buildEmbedUrl() {
     const e = this.config.baseUrl.replace(/\/$/, ""), s = new URLSearchParams({
+      event_id: this.config.event,
       workspace_key: this.config.workspaceKey,
       ...this.config.sessionToken ? { session_token: this.config.sessionToken } : {},
       ...this.config.mode ? { mode: this.config.mode } : {}
     });
-    return `${e}/embed/${this.config.event}?${s.toString()}`;
+    return `${e}/embed/render?${s.toString()}`;
   }
   resolveSize(e, s) {
     return e == null ? s : typeof e == "number" ? `${e}px` : e;
