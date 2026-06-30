@@ -5,6 +5,22 @@ export type TicketType = {
     price?: number | null;
     currency?: string | null;
 };
+export type SeatHoldEnvironment = 'production' | 'sandbox';
+export type SessionTokenResponse = {
+    session_token: string;
+    expires_at: string;
+};
+export type InventoryStatusResponse = {
+    label: string;
+    status: 'available' | 'held' | string;
+    created?: boolean;
+};
+export type SeatHoldApiErrorCode = 'workspace_key_required' | 'invalid_workspace_key' | 'session_token_required' | 'invalid_or_expired_session_token' | 'session_token_event_mismatch' | 'session_token_workspace_mismatch';
+export type SeatHoldApiError = Error & {
+    code?: SeatHoldApiErrorCode | string;
+    status?: number;
+    payload?: unknown;
+};
 export type PricingRule = {
     /** Section key as exposed by the embed payload (`sections[].key`) */
     category: string;
@@ -44,6 +60,8 @@ export type IncomingMessage = {
     seatIds: Array<string | number>;
 } | {
     type: 'seathold:hold_created';
+    holdId: string;
+    holdToken: string;
     sessionToken: string;
     expiresAt: number | null;
 } | {
@@ -124,14 +142,20 @@ export type SeatingChartConfig = {
     divId: string;
     /** Your public workspace key */
     workspaceKey: string;
-    /** Event slug or ID */
+    /** Public event ID used in X-SeatHold-Event-Id */
     event: string;
     /** Base URL of your SeatHold server (e.g. https://tickets.myapp.com) */
     baseUrl: string;
     /** Embed mode applied at mount time */
     mode?: 'manager' | 'simplified';
+    /** Optional backend environment for session creation */
+    environment?: SeatHoldEnvironment;
     /** Optional session token for authenticated holds */
     sessionToken?: string;
+    /** Optional session expiration for SDK-managed refresh */
+    sessionExpiresAt?: string | null;
+    /** Milliseconds before expiration when the SDK should recreate the session */
+    sessionRefreshBufferMs?: number;
     /** Multiprice rules: define ticket types per category key */
     pricing?: PricingRule[];
     /** iframe height (default: 600px) */

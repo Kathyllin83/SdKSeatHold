@@ -1,225 +1,309 @@
-# SeatHold SDK
+# @seathold/sdk
 
-Embed an interactive seat map in any web page.
-
-## Installation
+SDK para embedar o mapa de assentos SeatHold em qualquer página web.
 
 ```bash
 npm install @seathold/sdk
 ```
 
-Or via CDN:
+Via CDN:
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@seathold/sdk/dist/seathold.umd.js"></script>
 ```
 
-## Basic Usage
+---
+
+## Guia de integração
+
+### Pré-requisitos — o que você precisa ter em mãos
+
+| Dado | O que é | Exemplo |
+|---|---|---|
+| `workspaceKey` | Chave pública do workspace | `pub_abc123` |
+| `event` | **ID numérico** do evento na tabela `events` | `"42"` |
+| `baseUrl` | URL base do seu servidor SeatHold | `https://tickets.myapp.com` |
+
+> **Atenção:** `event` deve ser o ID numérico (`42`), não um slug (`"meu-show"`) nem um UUID. Se passar errado, o backend rejeita todas as requisições com 4xx.
+
+---
+
+### Passo 1 — Renderizar o mapa
 
 ```html
 <div id="seat-map"></div>
 
 <script type="module">
-  import { SeatingChart } from '@seathold/sdk';
+import { SeatingChart } from '@seathold/sdk';
 
-  const chart = new SeatingChart({
-    divId: 'seat-map',
-    baseUrl: 'https://tickets.myapp.com',
-    workspaceKey: 'pub_xxxxxxxxxxxx',
-    event: 'my-event-slug',
-    mode: 'simplified',
-    onReady: (eventId, objectKeys) => {
-      console.log('Map ready for event:', eventId, objectKeys);
-    },
-    onSelectionChanged: (seatIds, ticketTypes, objectKeys, items, pricingSelection) => {
-      console.log('Selected seats:', seatIds);
-      console.log('Ticket types chosen:', ticketTypes);
-      console.log('Pricing selection:', pricingSelection);
-      console.log('Selected items:', items);
-    },
-    onSessionCreated: (sessionToken, expiresAt) => {
-      console.log('Embed session created:', sessionToken, expiresAt);
-    },
-    onSessionUpdated: (sessionToken, expiresAt) => {
-      console.log('Embed session token:', sessionToken, 'expires at:', expiresAt);
-    },
-    onHoldCreated: (holdId, holdToken, expiresAt, seatIds, ticketTypes) => {
-      console.log('Hold created:', holdId);
-    },
-  }).render();
+const chart = new SeatingChart({
+  divId:        'seat-map',
+  baseUrl:      'https://tickets.myapp.com',
+  workspaceKey: 'pub_abc123',
+  event:        '42',           // ID numérico do evento
+  mode:         'simplified',   // ou 'manager'
+
+  onReady(eventId, objectKeys) {
+    console.log('Mapa pronto', eventId);
+  },
+
+  onSelectionChanged(seatIds, ticketTypes, objectKeys, items, pricingSelection) {
+    console.log('Seleção atual:', seatIds);
+  },
+
+  onError(action, message) {
+    console.error('Erro SeatHold:', action, message);
+  },
+}).render();
 </script>
 ```
 
-## Multiprice
+---
 
-Pass `pricing` to define ticket types per section key. `pricing[].category` must match the key exposed by the embed payload, for example `sections[].key`. When the user clicks a seat in that section, a popover shows the available ticket types to choose from.
+### Passo 2 — Criar session token (obrigatório antes de qualquer hold)
+
+O SDK cria e gerencia o token automaticamente. Basta chamar antes de fazer o hold:
+
+```js
+// O SDK verifica se o token ainda é válido; recria se estiver perto de expirar.
+const { session_token, expires_at } = await chart.ensureValidSession();
+```
+
+Ou se quiser criar explicitamente na primeira vez:
+
+```js
+const { session_token, expires_at } = await chart.createSessionToken();
+```
+
+O SDK salva o token internamente e o renova automaticamente antes de expirar. Você **não precisa** gerenciar o timer manualmente.
+
+---
+
+### Passo 3 — Fazer hold por label
+
+```js
+// label é o campo "label" do inventário (ex: "A-1", "Mesa 3")
+// NÃO é o objectId do builder
+const result = await chart.holdByLabel('A-1');
+// result: { label: 'A-1', status: 'held', created: true }
+```
+
+Para liberar:
+
+```js
+await chart.releaseByLabel('A-1');
+```
+
+> **Como obter o label correto?** Chame `getInventory()` e use o campo `label` de cada item:
+
+```js
+const inventory = await chart.getInventory();
+// inventory.items[n].label  ← use este valor no holdByLabel()
+```
+
+---
+
+### Passo 4 — Receber o evento de hold criado
+
+Quando o mapa interno cria um hold, o SDK dispara `onHoldCreated`:
+
+```js
+const chart = new SeatingChart({
+  // ...
+  onHoldCreated(holdId, holdToken, expiresAt, seatIds, ticketTypes, objectKeys, items) {
+    // holdId === holdToken === sessionToken (após o refactor de session-token)
+    // Envie para o seu backend finalizar o pedido
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionToken: holdId, seatIds, ticketTypes }),
+    });
+  },
+}).render();
+```
+
+---
+
+### Fluxo completo em código
+
+```js
+import { SeatingChart } from '@seathold/sdk';
+
+const chart = new SeatingChart({
+  divId:        'seat-map',
+  baseUrl:      'https://tickets.myapp.com',
+  workspaceKey: 'pub_abc123',
+  event:        '42',
+
+  onReady: () => console.log('Mapa pronto'),
+  onError: (action, msg) => console.error(action, msg),
+}).render();
+
+// Quando o usuário clicar em "Reservar":
+async function reservar(label) {
+  try {
+    await chart.ensureValidSession();          // 1. garante token válido
+    const result = await chart.holdByLabel(label); // 2. faz o hold
+    console.log('Hold criado:', result);
+  } catch (err) {
+    console.error('Falha no hold:', err.status, err.code, err.message);
+  }
+}
+```
+
+---
+
+## Headers enviados automaticamente
+
+O SDK injeta esses headers em **todas** as requisições protegidas:
+
+| Header | Valor |
+|---|---|
+| `X-SeatHold-Event-Id` | `config.event` (ID numérico) |
+| `X-SeatHold-Public-Key` | `config.workspaceKey` |
+| `X-SeatHold-Session-Token` | token criado em `/api/session-tokens` |
+
+Todas as requisições também enviam `credentials: 'include'` para suportar cookies CSRF em ambientes browser.
+
+---
+
+## Erros comuns e o que fazer
+
+| Status | Código | Causa | Solução |
+|---|---|---|---|
+| 4xx | — | `event` não é numérico | Usar o ID numérico do evento, não slug |
+| 401/403 | `invalid_or_expired_session_token` | Token expirou | Chamar `ensureValidSession()` antes do hold — o SDK renova automaticamente |
+| 404 | — | Label errado no path | Confirmar que o label vem de `getInventory()`, não do objectId do builder |
+| 419 | — | Cookie CSRF ausente | SDK já envia `credentials: 'include'` desde a v0.1.17 |
+| 4xx | `workspace_key_required` | Header público ausente | Verificar que `workspaceKey` está correto |
+
+---
+
+## Multiprice (opcional)
 
 ```js
 const chart = new SeatingChart({
   divId: 'seat-map',
   baseUrl: 'https://tickets.myapp.com',
-  workspaceKey: 'pub_xxxxxxxxxxxx',
-  event: 'my-event-slug',
+  workspaceKey: 'pub_abc123',
+  event: '42',
 
   pricing: [
     {
-      category: '1b',
+      category: 'pista',   // deve bater com sections[].key do embed
       ticketTypes: [
-        { id: 'pista-inteira', label: 'Inteira',  price: 120, currency: 'BRL' },
-        { id: 'pista-meia',    label: 'Meia',     price: 60,  currency: 'BRL', color: '#22c55e' },
-      ],
-    },
-    {
-      category: 'vip-a',
-      ticketTypes: [
-        { id: 'vip-inteira', label: 'VIP Inteira', price: 350, currency: 'BRL' },
+        { id: 'inteira', label: 'Inteira', price: 120, currency: 'BRL' },
+        { id: 'meia',    label: 'Meia',    price: 60,  currency: 'BRL' },
       ],
     },
   ],
 
-  onSelectionChanged: (seatIds, ticketTypes, objectKeys, items, pricingSelection) => {
-    // ticketTypes: { "seat-42": "pista-inteira", "seat-43": "pista-meia" }
-    console.log(seatIds, ticketTypes, objectKeys, items, pricingSelection);
-  },
-
-  onSessionCreated: (sessionToken, expiresAt) => {
-    // Persist the first session token created inside the iframe
-    fetch('/api/embed-session-created', {
-      method: 'POST',
-      body: JSON.stringify({ sessionToken, expiresAt }),
-    });
-  },
-
-  onSessionUpdated: (sessionToken, expiresAt) => {
-    // Persist the new embed session token created inside the iframe
-    fetch('/api/embed-session', {
-      method: 'POST',
-      body: JSON.stringify({ sessionToken, expiresAt }),
-    });
-  },
-
-  onHoldCreated: (holdId, holdToken, expiresAt, seatIds, ticketTypes) => {
-    // Since the session-token refactor, holdId === holdToken === sessionToken
-    // Send the session token to your backend to finalize the order
-    fetch('/api/orders', {
-      method: 'POST',
-      body: JSON.stringify({ holdId, holdToken, ticketTypes }),
-    });
+  onSelectionChanged(seatIds, ticketTypes, objectKeys, items, pricingSelection) {
+    // ticketTypes: { "seat-42": "inteira" }
+    // pricingSelection: { "seat-42": "inteira" }
   },
 }).render();
 ```
 
-## API
+O `category` em `pricing` deve ser exatamente o `key` que aparece em `sections[]` no evento `onReady` ou `getBuilder()`.
 
-### `new SeatingChart(config)`
+---
 
-| Option | Type | Required | Description |
-|---|---|---|---|
-| `divId` | `string` | yes | ID of the container element |
-| `baseUrl` | `string` | yes | Base URL of your SeatHold server |
-| `workspaceKey` | `string` | yes | Public workspace key |
-| `event` | `string` | yes | Event slug or ID |
-| `mode` | `'manager' \| 'simplified'` | | Embed mode applied on iframe mount |
-| `sessionToken` | `string` | | Session token for authenticated holds |
-| `pricing` | `PricingRule[]` | | Multiprice rules per section key |
-| `height` | `number or string` | | iframe height (default: `600px`) |
-| `width` | `number or string` | | iframe width (default: `100%`) |
-| `onReady` | `(eventId, objectKeys?) => void` | | Fired when the map finishes loading |
-| `onSelectionChanged` | `(seatIds, ticketTypes, objectKeys, items, pricingSelection) => void` | | Fired on every selection change |
-| `onObjectClicked` | `(objectId, objectType, objectKey?, categoryKey?) => void` | | Fired when any object is clicked |
-| `onCategoryChanged` | `(categoryId) => void` | | Fired when active category changes |
-| `onViewChanged` | `(zoom, position) => void` | | Fired on pan/zoom |
-| `onHoldCreated` | `(holdId, holdToken, expiresAt, seatIds, ticketTypes, objectKeys, items) => void` | | Fired after a hold is created |
-| `onHoldReleased` | `() => void` | | Fired after a hold is released |
-| `onState` | `(state) => void` | | Fired when the iframe responds to `requestState()` |
-| `onSessionCreated` | `(sessionToken, expiresAt) => void` | | Fired when the iframe creates a new session |
-| `onSessionUpdated` | `(sessionToken, expiresAt) => void` | | Fired when the iframe creates or refreshes the embed session token |
-| `onError` | `(action, message) => void` | | Fired on errors |
+## Captura de session token do iframe
 
-### Instance methods
-
-```js
-chart.render()                        // Inject the iframe and start listening
-chart.destroy()                       // Remove the iframe and all listeners
-chart.setSelectedSeats([id1, id2])    // Programmatically select seats
-chart.createHold([id1, id2])          // Trigger a hold (optional seat list)
-chart.releaseHold()                   // Release the current hold
-chart.updateSession(token, expiresAt) // Refresh the session token
-chart.requestState()                  // Ask for current state snapshot
-chart.setPricing(rules)               // Update pricing rules at runtime
-```
-
-## Embed mode
-
-Set `mode` only when creating the chart. The SDK sends it as a query param in the iframe URL, for example `?mode=simplified` or `?mode=manager`.
-
-If `mode` is omitted, the embed uses the default purchase flow. To change mode after load, destroy and render a new iframe with a different `mode`.
-
-## Session token capture
-
-If the embed creates a new authenticated session from inside the iframe, listen to `onSessionCreated` and `onSessionUpdated` to capture the `sessionToken` in the host app:
+Se o próprio embed criar a sessão internamente (modo padrão sem `createSessionToken()` explícito):
 
 ```js
 const chart = new SeatingChart({
   // ...
-  onSessionCreated: (sessionToken, expiresAt) => {
-    console.log('New sessionToken from iframe:', sessionToken, expiresAt);
+  onSessionCreated(sessionToken, expiresAt) {
+    // primeira sessão criada pelo iframe
+    salvarNoBackend(sessionToken, expiresAt);
   },
-  onSessionUpdated: (sessionToken, expiresAt) => {
-    console.log('Updated sessionToken from iframe:', sessionToken, expiresAt);
-  },
-  onState: (state) => {
-    console.log('Current embed state:', state);
+  onSessionUpdated(sessionToken, expiresAt) {
+    // sessão renovada pelo iframe
+    salvarNoBackend(sessionToken, expiresAt);
   },
 }).render();
-
-chart.requestState();
 ```
 
-For this to work, the embed must post either:
+---
 
-- `seathold:session_created` with `{ sessionToken, expiresAt }`
-- `seathold:session_updated` with `{ sessionToken, expiresAt }`
-- `seathold:state` with `{ sessionToken, sessionExpiresAt, ... }`
+## Referência rápida de métodos
 
-## Hold token compatibility
+```js
+chart.render()                         // monta o iframe
+chart.destroy()                        // remove o iframe e listeners
 
-Since the session-token refactor, `holdId === holdToken === sessionToken`.
+await chart.createSessionToken()       // POST /api/session-tokens (primeira vez)
+await chart.refreshSessionToken()      // força renovação imediata
+await chart.ensureValidSession()       // reusa ou renova se próximo de expirar
 
-If your booking API previously received `holdId`, update that integration to use the `sessionToken` semantics instead. The TypeScript types still allow the legacy names for backward compatibility.
+await chart.getBuilder()               // GET /api/render-map/builder
+await chart.getInventory()             // GET /api/render-map/inventory
+await chart.holdByLabel('A-1')         // POST /api/inventory/A-1/hold
+await chart.releaseByLabel('A-1')      // POST /api/inventory/A-1/release
 
-## Selection payload
+chart.setSelectedSeats([1, 2, 3])      // seleciona assentos programaticamente
+chart.holdCreated(token, expiresAt)    // notifica o iframe de um hold externo
+chart.releaseHold()                    // libera o hold atual no iframe
+chart.updateSession(token, expiresAt)  // atualiza token no iframe
+chart.requestState()                   // solicita snapshot do estado atual
+chart.setPricing(rules)                // atualiza pricing em tempo real
+```
 
-The embed can now expose stable commercial keys directly in the selection payload.
+---
+
+## Referência de tipos
 
 ```ts
-type SelectedItem = {
-  objectKey: string;
-  objectId: string | number;
-  sectionKey?: string | null;
-  categoryKey?: string | null;
-  ticketType: string | null;
+type SeatingChartConfig = {
+  divId: string;
+  baseUrl: string;
+  workspaceKey: string;
+  event: string;                        // ID numérico como string
+  mode?: 'manager' | 'simplified';
+  environment?: 'production' | 'sandbox';
+  sessionToken?: string;
+  sessionExpiresAt?: string | null;
+  sessionRefreshBufferMs?: number;      // padrão: 30000ms
+  pricing?: PricingRule[];
+  height?: number | string;             // padrão: 600px
+  width?: number | string;              // padrão: 100%
+  onReady?: (eventId: string, objectKeys?: string[]) => void;
+  onSelectionChanged?: (seatIds, ticketTypes, objectKeys, items, pricingSelection) => void;
+  onObjectClicked?: (objectId, objectType, objectKey?, categoryKey?) => void;
+  onCategoryChanged?: (categoryKey: string | null) => void;
+  onViewChanged?: (zoom: number, position: { x: number; y: number }) => void;
+  onHoldCreated?: (holdId, holdToken, expiresAt, seatIds, ticketTypes, objectKeys, items) => void;
+  onHoldReleased?: () => void;
+  onState?: (state: SessionState) => void;
+  onSessionCreated?: (sessionToken: string, expiresAt: string) => void;
+  onSessionUpdated?: (sessionToken: string | null, expiresAt: number | null) => void;
+  onError?: (action: string, message: string) => void;
 };
-```
 
-`items` in `onSelectionChanged` and `onHoldCreated` may include `sectionKey` and `categoryKey` when the map or inventory payload provides them.
+type PricingRule = {
+  category: string;       // deve bater com sections[].key
+  ticketTypes: TicketType[];
+};
 
-`onSelectionChanged` now also receives:
-
-```ts
-pricingSelection: Record<string, string | null>;
-```
-
-This maps each selected object to the current pricing choice coming from the embed.
-
-## TicketType
-
-```ts
 type TicketType = {
   id: string;
   label: string;
   color?: string | null;
   price?: number | null;
   currency?: string | null;
+};
+
+type InventoryStatusResponse = {
+  label: string;
+  status: 'available' | 'held' | string;
+  created?: boolean;
+};
+
+type SessionTokenResponse = {
+  session_token: string;
+  expires_at: string;
 };
 ```

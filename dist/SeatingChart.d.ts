@@ -1,9 +1,12 @@
-import type { PricingRule, SeatingChartConfig } from './types';
+import type { InventoryStatusResponse, PricingRule, SeatingChartConfig, SessionTokenResponse } from './types';
 export declare class SeatingChart {
     private readonly config;
     private iframe;
     private messageHandler;
     private iframeOrigin;
+    private sessionToken;
+    private sessionExpiresAt;
+    private sessionRefreshTimer;
     constructor(config: SeatingChartConfig);
     render(): this;
     destroy(): void;
@@ -13,9 +16,26 @@ export declare class SeatingChart {
     updateSession(sessionToken: string, expiresAt?: number | null): void;
     requestState(): void;
     setPricing(pricing: PricingRule[]): void;
+    createSessionToken(): Promise<SessionTokenResponse>;
+    refreshSessionToken(): Promise<SessionTokenResponse>;
+    private requestSessionToken;
+    ensureValidSession(): Promise<SessionTokenResponse>;
+    getBuilder<T = unknown>(): Promise<T>;
+    getInventory<T = unknown>(): Promise<T>;
+    holdByLabel(label: string): Promise<InventoryStatusResponse>;
+    releaseByLabel(label: string): Promise<InventoryStatusResponse>;
     private validateAndSetPricing;
     private send;
     private handleMessage;
     private buildEmbedUrl;
+    private getApiBaseUrl;
+    private buildHeaders;
+    private getProtectedJson;
+    private postProtectedJson;
+    private parseJson;
+    private createApiError;
+    private isSessionNearExpiry;
+    private scheduleSessionRefresh;
+    private syncIframeSession;
     private resolveSize;
 }
