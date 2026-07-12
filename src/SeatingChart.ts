@@ -75,7 +75,7 @@ export class SeatingChart {
     this.send({ type: 'seathold:set_selected_seats', seatIds });
   }
 
-  holdCreated(sessionToken: string, expiresAt: number | null): void {
+  holdCreated(sessionToken: string, expiresAt: string | null): void {
     this.send({
       type: 'seathold:hold_created',
       holdId: sessionToken,
@@ -89,10 +89,10 @@ export class SeatingChart {
     this.send({ type: 'seathold:release_hold' });
   }
 
-  updateSession(sessionToken: string, expiresAt?: number | null): void {
+  updateSession(sessionToken: string, expiresAt?: string | null): void {
     this.sessionToken = sessionToken;
     if (expiresAt != null) {
-      this.sessionExpiresAt = new Date(expiresAt).toISOString();
+      this.sessionExpiresAt = expiresAt;
       this.scheduleSessionRefresh();
     }
     this.send({ type: 'seathold:update_session', sessionToken, expiresAt });
@@ -132,7 +132,7 @@ export class SeatingChart {
     if (trigger === 'created') {
       this.config.onSessionCreated?.(payload.session_token, payload.expires_at);
     } else {
-      this.config.onSessionUpdated?.(payload.session_token, Date.parse(payload.expires_at));
+      this.config.onSessionUpdated?.(payload.session_token, payload.expires_at);
     }
     return payload;
   }
@@ -250,7 +250,7 @@ export class SeatingChart {
 
       case 'seathold:session_updated':
         this.sessionToken = data.sessionToken;
-        this.sessionExpiresAt = data.expiresAt != null ? new Date(data.expiresAt).toISOString() : null;
+        this.sessionExpiresAt = data.expiresAt ?? null;
         this.scheduleSessionRefresh();
         this.config.onSessionUpdated?.(data.sessionToken, data.expiresAt);
         break;
@@ -371,10 +371,7 @@ export class SeatingChart {
   }
 
   private syncIframeSession(sessionToken: string, expiresAt: string): void {
-    const numericExpiresAt = Date.parse(expiresAt);
-    if (!Number.isNaN(numericExpiresAt)) {
-      this.send({ type: 'seathold:update_session', sessionToken, expiresAt: numericExpiresAt });
-    }
+    this.send({ type: 'seathold:update_session', sessionToken, expiresAt });
   }
 
   private resolveSize(value: number | string | undefined, fallback: string): string {
