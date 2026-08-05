@@ -5,7 +5,7 @@ export type TicketType = {
     price?: number | null;
     currency?: string | null;
 };
-export type SeatHoldEnvironment = 'production' | 'sandbox';
+export type ReservaAquiEnvironment = 'production' | 'sandbox';
 export type SessionTokenResponse = {
     session_token: string;
     expires_at: string;
@@ -15,9 +15,9 @@ export type InventoryStatusResponse = {
     status: 'available' | 'held' | string;
     created?: boolean;
 };
-export type SeatHoldApiErrorCode = 'workspace_key_required' | 'invalid_workspace_key' | 'session_token_required' | 'invalid_or_expired_session_token' | 'session_token_event_mismatch' | 'session_token_workspace_mismatch';
-export type SeatHoldApiError = Error & {
-    code?: SeatHoldApiErrorCode | string;
+export type ReservaAquiApiErrorCode = 'workspace_key_required' | 'invalid_workspace_key' | 'session_token_required' | 'invalid_or_expired_session_token' | 'session_token_event_mismatch' | 'session_token_workspace_mismatch';
+export type ReservaAquiApiError = Error & {
+    code?: ReservaAquiApiErrorCode | string;
     status?: number;
     payload?: unknown;
 };
@@ -52,88 +52,88 @@ export type SessionState = {
     /** Since the session-token refactor, `holdToken` mirrors the session token value. */
     holdToken: string | null;
     sessionToken: string | null;
-    sessionExpiresAt: number | null;
-    expiresAt: number | null;
+    sessionExpiresAt: string | null;
+    expiresAt: string | null;
 };
 export type IncomingMessage = {
-    type: 'seathold:set_selected_seats';
+    type: 'reserva-aqui:set_selected_seats';
     seatIds: Array<string | number>;
 } | {
-    type: 'seathold:hold_created';
+    type: 'reserva-aqui:hold_created';
     holdId: string;
     holdToken: string;
     sessionToken: string;
-    expiresAt: number | null;
+    expiresAt: string | null;
 } | {
-    type: 'seathold:release_hold';
+    type: 'reserva-aqui:release_hold';
 } | {
-    type: 'seathold:update_session';
+    type: 'reserva-aqui:update_session';
     sessionToken: string;
-    expiresAt?: number | null;
+    expiresAt?: string | null;
 } | {
-    type: 'seathold:request_state';
+    type: 'reserva-aqui:request_state';
 } | {
-    type: 'seathold:set_pricing';
+    type: 'reserva-aqui:set_pricing';
     pricing: PricingRule[];
 };
 export type OutgoingMessage = {
-    type: 'seathold:ready';
+    type: 'reserva-aqui:ready';
     eventId: string;
     objectKeys?: string[];
     sections?: SectionSummary[];
 } | {
-    type: 'seathold:selection_changed';
+    type: 'reserva-aqui:selection_changed';
     seatIds: Array<string | number>;
     objectKeys: string[];
     items: SelectedItem[];
     ticketTypes: Record<string, string | null>;
     pricingSelection: Record<string, string | null>;
 } | {
-    type: 'seathold:object_clicked';
+    type: 'reserva-aqui:object_clicked';
     objectId: number | string;
     objectKey?: string;
     objectType: string;
     categoryKey?: string | null;
 } | {
-    type: 'seathold:category_changed';
+    type: 'reserva-aqui:category_changed';
     categoryKey: string | null;
 } | {
-    type: 'seathold:view_changed';
+    type: 'reserva-aqui:view_changed';
     zoom: number;
     position: {
         x: number;
         y: number;
     };
 } | {
-    type: 'seathold:hold_created';
+    type: 'reserva-aqui:hold_created';
     holdId: number | string;
     holdToken: string | null;
-    expiresAt: number | null;
+    expiresAt: string | null;
     seatIds: Array<string | number>;
     objectKeys?: string[];
     items?: SelectedItem[];
     ticketTypes: Record<string, string | null>;
 } | {
-    type: 'seathold:hold_released';
+    type: 'reserva-aqui:hold_released';
 } | {
-    type: 'seathold:state';
+    type: 'reserva-aqui:state';
     eventId: string;
     selectedSeatIds: Array<string | number>;
     holdId: number | string | null;
     holdToken: string | null;
     sessionToken?: string | null;
-    sessionExpiresAt?: number | null;
-    expiresAt: number | null;
+    sessionExpiresAt?: string | null;
+    expiresAt: string | null;
 } | {
-    type: 'seathold:session_created';
+    type: 'reserva-aqui:session_created';
     sessionToken: string;
     expiresAt: string;
 } | {
-    type: 'seathold:session_updated';
+    type: 'reserva-aqui:session_updated';
     sessionToken: string | null;
-    expiresAt: number | null;
+    expiresAt: string | null;
 } | {
-    type: 'seathold:error';
+    type: 'reserva-aqui:error';
     action: string;
     message: string;
 };
@@ -142,14 +142,14 @@ export type SeatingChartConfig = {
     divId: string;
     /** Your public workspace key */
     workspaceKey: string;
-    /** Public event ID used in X-SeatHold-Event-Id */
+    /** Public event ID used in X-ReservaAqui-Event-Id */
     event: string;
-    /** Base URL of your SeatHold server (e.g. https://tickets.myapp.com) */
+    /** Base URL of your ReservaAqui server (e.g. https://tickets.myapp.com) */
     baseUrl: string;
     /** Embed mode applied at mount time */
     mode?: 'manager' | 'simplified';
     /** Optional backend environment for session creation */
-    environment?: SeatHoldEnvironment;
+    environment?: ReservaAquiEnvironment;
     /** Optional session token for authenticated holds */
     sessionToken?: string;
     /** Optional session expiration for SDK-managed refresh */
@@ -171,10 +171,10 @@ export type SeatingChartConfig = {
         y: number;
     }) => void;
     /** Since the session-token refactor, `holdId` and `holdToken` both mirror `sessionToken`. */
-    onHoldCreated?: (holdId: number | string, holdToken: string | null, expiresAt: number | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>, objectKeys: string[], items: SelectedItem[]) => void;
+    onHoldCreated?: (holdId: number | string, holdToken: string | null, expiresAt: string | null, seatIds: Array<string | number>, ticketTypes: Record<string, string | null>, objectKeys: string[], items: SelectedItem[]) => void;
     onHoldReleased?: () => void;
     onState?: (state: SessionState) => void;
     onSessionCreated?: (sessionToken: string, expiresAt: string) => void;
-    onSessionUpdated?: (sessionToken: string | null, expiresAt: number | null) => void;
+    onSessionUpdated?: (sessionToken: string | null, expiresAt: string | null) => void;
     onError?: (action: string, message: string) => void;
 };

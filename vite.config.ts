@@ -6,9 +6,9 @@ export default defineConfig({
     minify: 'esbuild',
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
-      name: 'SeatHold',
+      name: 'ReservaAqui',
       formats: ['es', 'umd'],
-      fileName: (format) => `seathold.${format === 'es' ? 'esm' : format}.js`,
+      fileName: (format) => `reserva-aqui.${format === 'es' ? 'esm' : format}.js`,
     },
     rollupOptions: {
       external: [],

@@ -1,15 +1,15 @@
-# @seathold/sdk
+# @reserva-aqui/sdk
 
-SDK para embedar o mapa de assentos SeatHold em qualquer página web.
+SDK para embedar o mapa de assentos Reserva Aqui em qualquer página web.
 
 ```bash
-npm install @seathold/sdk
+npm install @reserva-aqui/sdk
 ```
 
 Via CDN:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@seathold/sdk/dist/seathold.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@reserva-aqui/sdk/dist/reserva-aqui.umd.js"></script>
 ```
 
 ---
@@ -34,7 +34,7 @@ Via CDN:
 <div id="seat-map"></div>
 
 <script type="module">
-import { SeatingChart } from '@seathold/sdk';
+import { SeatingChart } from '@reserva-aqui/sdk';
 
 const chart = new SeatingChart({
   divId:        'seat-map',
@@ -127,7 +127,7 @@ const chart = new SeatingChart({
 ### Fluxo completo em código
 
 ```js
-import { SeatingChart } from '@seathold/sdk';
+import { SeatingChart } from '@reserva-aqui/sdk';
 
 const chart = new SeatingChart({
   divId:        'seat-map',

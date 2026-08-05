@@ -7,9 +7,9 @@ export type {
   SessionState,
   IncomingMessage,
   OutgoingMessage,
-  SeatHoldEnvironment,
+  ReservaAquiEnvironment,
   SessionTokenResponse,
   InventoryStatusResponse,
-  SeatHoldApiError,
-  SeatHoldApiErrorCode,
+  ReservaAquiApiError,
+  ReservaAquiApiErrorCode,
 } from './types';

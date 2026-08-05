@@ -11,9 +11,9 @@ export declare class SeatingChart {
     render(): this;
     destroy(): void;
     setSelectedSeats(seatIds: Array<string | number>): void;
-    holdCreated(sessionToken: string, expiresAt: number | null): void;
+    holdCreated(sessionToken: string, expiresAt: string | null): void;
     releaseHold(): void;
-    updateSession(sessionToken: string, expiresAt?: number | null): void;
+    updateSession(sessionToken: string, expiresAt?: string | null): void;
     requestState(): void;
     setPricing(pricing: PricingRule[]): void;
     createSessionToken(): Promise<SessionTokenResponse>;

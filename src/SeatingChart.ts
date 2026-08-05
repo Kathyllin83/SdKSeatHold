@@ -3,7 +3,7 @@ import type {
   InventoryStatusResponse,
   OutgoingMessage,
   PricingRule,
-  SeatHoldApiError,
+  ReservaAquiApiError,
   SeatingChartConfig,
   SectionSummary,
   SessionTokenResponse,
@@ -23,14 +23,14 @@ export class SeatingChart {
     this.sessionToken = config.sessionToken ?? null;
     this.sessionExpiresAt = config.sessionExpiresAt ?? null;
     if (!/^\d+$/.test(config.event)) {
-      console.warn(`[SeatHold] config.event "${config.event}" does not look like a numeric event ID. X-SeatHold-Event-Id must be the numeric database ID of the event, not a slug or UUID.`);
+      console.warn(`[ReservaAqui] config.event "${config.event}" does not look like a numeric event ID. X-SeatHold-Event-Id must be the numeric database ID of the event, not a slug or UUID.`);
     }
   }
 
   render(): this {
     const container = document.getElementById(this.config.divId);
     if (!container) {
-      throw new Error(`[SeatHold] Element #${this.config.divId} not found.`);
+      throw new Error(`[ReservaAqui] Element #${this.config.divId} not found.`);
     }
 
     const url = this.buildEmbedUrl();
@@ -72,12 +72,12 @@ export class SeatingChart {
   }
 
   setSelectedSeats(seatIds: Array<string | number>): void {
-    this.send({ type: 'seathold:set_selected_seats', seatIds });
+    this.send({ type: 'reserva-aqui:set_selected_seats', seatIds });
   }
 
   holdCreated(sessionToken: string, expiresAt: string | null): void {
     this.send({
-      type: 'seathold:hold_created',
+      type: 'reserva-aqui:hold_created',
       holdId: sessionToken,
       holdToken: sessionToken,
       sessionToken,
@@ -86,7 +86,7 @@ export class SeatingChart {
   }
 
   releaseHold(): void {
-    this.send({ type: 'seathold:release_hold' });
+    this.send({ type: 'reserva-aqui:release_hold' });
   }
 
   updateSession(sessionToken: string, expiresAt?: string | null): void {
@@ -95,15 +95,15 @@ export class SeatingChart {
       this.sessionExpiresAt = expiresAt;
       this.scheduleSessionRefresh();
     }
-    this.send({ type: 'seathold:update_session', sessionToken, expiresAt });
+    this.send({ type: 'reserva-aqui:update_session', sessionToken, expiresAt });
   }
 
   requestState(): void {
-    this.send({ type: 'seathold:request_state' });
+    this.send({ type: 'reserva-aqui:request_state' });
   }
 
   setPricing(pricing: PricingRule[]): void {
-    this.send({ type: 'seathold:set_pricing', pricing });
+    this.send({ type: 'reserva-aqui:set_pricing', pricing });
   }
 
   async createSessionToken(): Promise<SessionTokenResponse> {
@@ -173,7 +173,7 @@ export class SeatingChart {
     if (validKeys.length > 0) {
       for (const rule of pricing) {
         if (!validKeys.includes(rule.category)) {
-          console.warn(`[SeatHold] Pricing category "${rule.category}" has no matching section key in the embed payload — it will have no effect.`);
+          console.warn(`[ReservaAqui] Pricing category "${rule.category}" has no matching section key in the embed payload — it will have no effect.`);
         }
       }
     }
@@ -182,7 +182,7 @@ export class SeatingChart {
 
   private send(message: IncomingMessage): void {
     if (!this.iframe?.contentWindow) {
-      console.warn('[SeatHold] iframe not ready yet.');
+      console.warn('[ReservaAqui] iframe not ready yet.');
       return;
     }
     this.iframe.contentWindow.postMessage(message, this.iframeOrigin);
@@ -190,12 +190,12 @@ export class SeatingChart {
 
   private handleMessage(data: OutgoingMessage): void {
     switch (data.type) {
-      case 'seathold:ready':
+      case 'reserva-aqui:ready':
         const readyKeys = data.sections?.map((section) => section.key) ?? data.objectKeys;
         if (readyKeys) {
           for (const key of readyKeys) {
             if (!key) {
-              console.warn('[SeatHold] A bookable section has no key — it will not be commercially addressable.');
+              console.warn('[ReservaAqui] A bookable section has no key — it will not be commercially addressable.');
             }
           }
         }
@@ -205,31 +205,31 @@ export class SeatingChart {
         this.config.onReady?.(data.eventId, data.objectKeys);
         break;
 
-      case 'seathold:selection_changed':
+      case 'reserva-aqui:selection_changed':
         this.config.onSelectionChanged?.(data.seatIds, data.ticketTypes, data.objectKeys, data.items, data.pricingSelection);
         break;
 
-      case 'seathold:object_clicked':
+      case 'reserva-aqui:object_clicked':
         this.config.onObjectClicked?.(data.objectId, data.objectType, data.objectKey, data.categoryKey);
         break;
 
-      case 'seathold:category_changed':
+      case 'reserva-aqui:category_changed':
         this.config.onCategoryChanged?.(data.categoryKey);
         break;
 
-      case 'seathold:view_changed':
+      case 'reserva-aqui:view_changed':
         this.config.onViewChanged?.(data.zoom, data.position);
         break;
 
-      case 'seathold:hold_created':
+      case 'reserva-aqui:hold_created':
         this.config.onHoldCreated?.(data.holdId, data.holdToken, data.expiresAt, data.seatIds, data.ticketTypes, data.objectKeys ?? [], data.items ?? []);
         break;
 
-      case 'seathold:hold_released':
+      case 'reserva-aqui:hold_released':
         this.config.onHoldReleased?.();
         break;
 
-      case 'seathold:state':
+      case 'reserva-aqui:state':
         this.config.onState?.({
           eventId: data.eventId,
           selectedSeatIds: data.selectedSeatIds,
@@ -241,21 +241,21 @@ export class SeatingChart {
         });
         break;
 
-      case 'seathold:session_created':
+      case 'reserva-aqui:session_created':
         this.sessionToken = data.sessionToken;
         this.sessionExpiresAt = data.expiresAt;
         this.scheduleSessionRefresh();
         this.config.onSessionCreated?.(data.sessionToken, data.expiresAt);
         break;
 
-      case 'seathold:session_updated':
+      case 'reserva-aqui:session_updated':
         this.sessionToken = data.sessionToken;
         this.sessionExpiresAt = data.expiresAt ?? null;
         this.scheduleSessionRefresh();
         this.config.onSessionUpdated?.(data.sessionToken, data.expiresAt);
         break;
 
-      case 'seathold:error':
+      case 'reserva-aqui:error':
         this.config.onError?.(data.action, data.message);
         break;
     }
@@ -333,10 +333,10 @@ export class SeatingChart {
     }
   }
 
-  private createApiError(action: string, status: number, payload: unknown): SeatHoldApiError {
+  private createApiError(action: string, status: number, payload: unknown): ReservaAquiApiError {
     const payloadCode = typeof payload === 'object' && payload !== null && 'code' in payload ? String(payload.code) : undefined;
     const payloadMessage = typeof payload === 'object' && payload !== null && 'message' in payload ? String(payload.message) : undefined;
-    const error = new Error(payloadMessage ?? `SeatHold API request failed for ${action}`) as SeatHoldApiError;
+    const error = new Error(payloadMessage ?? `SeatHold API request failed for ${action}`) as ReservaAquiApiError;
     error.code = payloadCode;
     error.status = status;
     error.payload = payload;
@@ -371,7 +371,7 @@ export class SeatingChart {
   }
 
   private syncIframeSession(sessionToken: string, expiresAt: string): void {
-    this.send({ type: 'seathold:update_session', sessionToken, expiresAt });
+    this.send({ type: 'reserva-aqui:update_session', sessionToken, expiresAt });
   }
 
   private resolveSize(value: number | string | undefined, fallback: string): string {

@@ -1,9 +1,9 @@
 {
-  "name": "@seathold/sdk",
-  "version": "0.1.18",
-  "description": "SeatHold embed SDK — renders an interactive seat map inside an iframe and communicates via postMessage",
-  "main": "dist/seathold.umd.js",
-  "module": "dist/seathold.esm.js",
+  "name": "@reserva-aqui/sdk",
+  "version": "0.2.0",
+  "description": "Reserva Aqui embed SDK — renders an interactive seat map inside an iframe and communicates via postMessage",
+  "main": "dist/reserva-aqui.umd.js",
+  "module": "dist/reserva-aqui.esm.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
@@ -17,7 +17,7 @@
     "vite": "^5.2.0"
   },
   "keywords": [
-    "seathold",
+    "reserva-aqui",
     "seat-map",
     "ticketing",
     "sdk"
