@@ -91,7 +91,7 @@ class x {
     this.iframe.contentWindow.postMessage(e, this.iframeOrigin);
   }
   handleMessage(e) {
-    var s, i, t, n, r, o, a, c, l, d, u, f, g, p, m, y, k, S, v, b, T, w, A;
+    var s, i, t, n, r, o, a, c, l, d, u, f, g, p, m, y, k, v, S, b, T, w, A;
     switch (e.type) {
       case "reserva-aqui:ready":
         const E = ((s = e.sections) == null ? void 0 : s.map((h) => h.key)) ?? e.objectKeys;
@@ -130,7 +130,7 @@ class x {
         });
         break;
       case "reserva-aqui:session_created":
-        this.sessionToken = e.sessionToken, this.sessionExpiresAt = e.expiresAt, this.scheduleSessionRefresh(), (v = (S = this.config).onSessionCreated) == null || v.call(S, e.sessionToken, e.expiresAt);
+        this.sessionToken = e.sessionToken, this.sessionExpiresAt = e.expiresAt, this.scheduleSessionRefresh(), (S = (v = this.config).onSessionCreated) == null || S.call(v, e.sessionToken, e.expiresAt);
         break;
       case "reserva-aqui:session_updated":
         this.sessionToken = e.sessionToken, this.sessionExpiresAt = e.expiresAt ?? null, this.scheduleSessionRefresh(), (T = (b = this.config).onSessionUpdated) == null || T.call(b, e.sessionToken, e.expiresAt);
@@ -196,7 +196,7 @@ class x {
   }
   createApiError(e, s, i) {
     var o, a;
-    const t = typeof i == "object" && i !== null && "code" in i ? String(i.code) : void 0, n = typeof i == "object" && i !== null && "message" in i ? String(i.message) : void 0, r = new Error(n ?? `SeatHold API request failed for ${e}`);
+    const t = typeof i == "object" && i !== null && "code" in i ? String(i.code) : void 0, n = typeof i == "object" && i !== null && "message" in i ? String(i.message) : void 0, r = new Error(n ?? `ReservaAqui API request failed for ${e}`);
     return r.code = t, r.status = s, r.payload = i, (a = (o = this.config).onError) == null || a.call(o, e, r.message), r;
   }
   isSessionNearExpiry() {

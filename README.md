@@ -22,7 +22,7 @@ Via CDN:
 |---|---|---|
 | `workspaceKey` | Chave pública do workspace | `pub_abc123` |
 | `event` | **ID numérico** do evento na tabela `events` | `"42"` |
-| `baseUrl` | URL base do seu servidor SeatHold | `https://tickets.myapp.com` |
+| `baseUrl` | URL base do seu servidor Reserva Aqui | `https://tickets.myapp.com` |
 
 > **Atenção:** `event` deve ser o ID numérico (`42`), não um slug (`"meu-show"`) nem um UUID. Se passar errado, o backend rejeita todas as requisições com 4xx.
 
@@ -52,7 +52,7 @@ const chart = new SeatingChart({
   },
 
   onError(action, message) {
-    console.error('Erro SeatHold:', action, message);
+    console.error('Erro Reserva Aqui:', action, message);
   },
 }).render();
 </script>

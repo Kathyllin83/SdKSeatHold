@@ -336,7 +336,7 @@ export class SeatingChart {
   private createApiError(action: string, status: number, payload: unknown): ReservaAquiApiError {
     const payloadCode = typeof payload === 'object' && payload !== null && 'code' in payload ? String(payload.code) : undefined;
     const payloadMessage = typeof payload === 'object' && payload !== null && 'message' in payload ? String(payload.message) : undefined;
-    const error = new Error(payloadMessage ?? `SeatHold API request failed for ${action}`) as ReservaAquiApiError;
+    const error = new Error(payloadMessage ?? `ReservaAqui API request failed for ${action}`) as ReservaAquiApiError;
     error.code = payloadCode;
     error.status = status;
     error.payload = payload;
